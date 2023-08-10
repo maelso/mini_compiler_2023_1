@@ -125,11 +125,7 @@ public class Scanner {
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
 						if (isSpace(currentChar) || isDelimiter(currentChar) || isMathOperator(currentChar) || isTwoPoints(currentChar)) {
-							for (Keyword k : Keyword.values()) {
-								if (content.intern() == k.toString().intern()) {
-									return new Token(TokenType.RESERVED_KEYWORD, k.toString(), this.line, this.column);
-								}
-							}
+							TokenType type = reservedWords.getOrDefault(content, TokenType.IDENTYFIER);
 							return new Token(TokenType.IDENTYFIER, content, this.line, this.column);
 						}
 
