@@ -41,7 +41,7 @@ public class Scanner {
 		}
 	}
 
-	public Token nextToken() {
+	public Token nextToken() throws Exception {
 		this.state = 0;
 		String content = "";
 		char currentChar;
@@ -50,15 +50,8 @@ public class Scanner {
 			if (isEOF()) {
 				return null;
 			}
-
-			
 			
 			currentChar = this.nextChar();
-
-			if (isEndOfLine(currentChar)) {
-				this.line++;
-				this.column = 1;
-			}
 
 			if (currentChar == '#') {
 				while (!this.isEndOfLine(currentChar)) {
@@ -76,6 +69,11 @@ public class Scanner {
 						content += currentChar;
 						state = 1;
 					} else if (isSpace(currentChar)) {
+                        // System.out.println(this.source_code[pos]);
+                        if (isEndOfLine(this.source_code[pos])) {
+                            this.line++;
+                            this.column = 1;
+                        }
 						state = 0;
 					} else if (isDigit(currentChar)) {
 						content += currentChar;
@@ -97,25 +95,17 @@ public class Scanner {
 						state = 7;
 					} else if(isLeftParenthesis(currentChar)) {
 						content += currentChar;
-           				return new Token(TokenType.LEFT_PARENTHESIS, content, this.line, this.column);
+
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.LEFT_PARENTHESIS, content);
 					} else if(isRightParenthesis(currentChar)) {
 						content += currentChar;
-            			return new Token(TokenType.RIGHT_PARENTHESIS, content, this.line, this.column);
+
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.RIGHT_PARENTHESIS, content);
 					} else if (isDot(currentChar)) {
 						content += currentChar;
 						state = 8;
-					} else if (isDoubleQuotes(currentChar)) {
-						content += currentChar;
-						state = 10;
-					} else if (isDelimiter(currentChar)) {
-						content += currentChar;
-						return new Token(TokenType.DELIMITER, content, this.line, this.column);
-						
-					} else if (isTwoPoints(currentChar)) {
-						content += currentChar;
-						return new Token(TokenType.TWO_POINTS, content, this.line, this.column);
 					} else {
-						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+						throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
 					}
 					break;
 				case 1:
@@ -124,12 +114,12 @@ public class Scanner {
 						state = 1;
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
-						if (isSpace(currentChar) || isDelimiter(currentChar) || isMathOperator(currentChar) || isTwoPoints(currentChar)) {
+						if (isSpace(currentChar) || isMathOperator(currentChar)) {
 							TokenType type = reservedWords.getOrDefault(content, TokenType.IDENTYFIER);
-							return new Token(TokenType.IDENTYFIER, content, this.line, this.column);
+							return this.returnedTokenInEndOfLine(currentChar, type, content);
 						}
 
-						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+						throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
 					}
 					break;
 				case 2:
@@ -140,55 +130,55 @@ public class Scanner {
 						content += currentChar;
 						state = 8;
 					} else	if (isSpace(currentChar) || isEndOfLine(currentChar) || isRightParenthesis(currentChar)) {
-						return new Token(TokenType.NUMBER, content, this.line, this.column);
-					} else if (isDelimiter(currentChar) || isMathOperator(currentChar) || isTwoPoints(currentChar)) {
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.NUMBER, content);
+					} else if (isMathOperator(currentChar)) {
 						this.back();
-						return new Token(TokenType.NUMBER, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.NUMBER, content);
 					} else {
-						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+						throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
 					}
 					break;
 					
 				case 3: 
-					return getMathToken(content);
+					return getOperationToken(content, currentChar);
 				case 4: 
 					if (isEquals(currentChar) && isEquals(this.source_code[this.pos])) {
 						this.nextChar();
-						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+						throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
 
 					} else if(isEquals(currentChar) && !isEquals(this.source_code[this.pos])) {
 						content += currentChar;
-						return new Token(TokenType.EQUALS_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.EQUALS_OP, content);
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
-						return new Token(TokenType.ASSIGN_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.ASSIGN_OP, content);
 					}
 
 				case 5:
 					if (isEquals(currentChar)) {
 						content += currentChar;
-						return new Token(TokenType.LESS_EQUALS_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.LESS_EQUALS_OP, content);
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
-						return new Token(TokenType.LESS_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.LESS_OP, content);
 					}
 				
 				case 6:
 					if (isEquals(currentChar)) {
 						content += currentChar;
-						return new Token(TokenType.GREATER_EQUALS_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.GREATER_EQUALS_OP, content);
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
-						return new Token(TokenType.GREATER_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.GREATER_OP, content);
 					}
 
 				case 7:
 					if (isEquals(currentChar)) {
 						content += currentChar;
-						return new Token(TokenType.DIF_OP, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.DIF_OP, content);
 					} else {
 						if (!isEndOfLine(currentChar)) this.back();
-						throw new RuntimeException("Operator ! don't is supported [line:" + line  + " ] [column:"+ column + "]");
+						throw new Exception("Operator ! don't is supported [line:" + line  + " ] [column:"+ column + "]");
 					}
 				case 8:
 					if (isDigit(currentChar)) {
@@ -196,7 +186,7 @@ public class Scanner {
 						state = 9;
 					} else {
 						this.back();
-						throw new RuntimeException("Error: Invalid Character for Number [line:" + line  + " ] [column:"+ column + "]");
+						throw new Exception("Error: Invalid Character for Number [line:" + line  + " ] [column:"+ column + "]");
 					}
 					break;
 
@@ -205,25 +195,27 @@ public class Scanner {
 						content += currentChar;
 						state = 9;
 					} else if (isSpace(currentChar) || isEndOfLine(currentChar)) {
-						return new Token(TokenType.NUMBER, content, this.line, this.column);
+                        return this.returnedTokenInEndOfLine(currentChar, TokenType.NUMBER, content);
 					} else {
-						throw new RuntimeException("Unrecognized symbol for number \'" + currentChar + "\' at line " + line + ", column " + column);
+						throw new Exception("Unrecognized symbol for number \'" + currentChar + "\' at line " + line + ", column " + column);
 					}
-					break;
-
-				case 10: 
-					if (isDoubleQuotes(currentChar)) {
-						content += currentChar;
-						return new Token(TokenType.STRING, content, this.line, this.column);
-					}
-					content += currentChar;
-					state = 10;
 					break;
 			}
-
-			
-		}
+		
+            
+        }
 	}
+
+    private Token returnedTokenInEndOfLine(char currentChar, TokenType type, String content) {
+        Token newToken = new Token(type, content, this.line, this.column);
+
+        if (this.isEndOfLine(currentChar) || this.isEndOfLine(this.source_code[pos])) {
+            this.line++;
+            this.column = 1;
+        }
+
+        return newToken;
+    }
 
 	private char nextChar() {
 		char currentChar = this.source_code[pos++];
@@ -238,56 +230,48 @@ public class Scanner {
 		this.pos--;
 	}
 
-	private boolean isLetter(char c) {
-		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+	private boolean isLetter(char currentChar) {
+		return (currentChar >= 'a' && currentChar <= 'z') || (currentChar >= 'A' && currentChar <= 'Z');
 	}
 
-	private boolean isDigit(char c) {
-		return c >= '0' && c <= '9';
+	private boolean isDigit(char currentChar) {
+		return currentChar >= '0' && currentChar <= '9';
 	}
 
-	private boolean isUnderscore(char c) {
-		return c == '_';
+	private boolean isUnderscore(char currentChar) {
+		return currentChar == '_';
 	}
 
-	private boolean isLess(char c) {
-		return c == '<';
+	private boolean isLess(char currentChar) {
+		return currentChar == '<';
 	}
 
-	private boolean isGreater(char c) {
-		return c == '>';
+	private boolean isGreater(char currentChar) {
+		return currentChar == '>';
 	}
 
-	private boolean isDot(char c) {
-		return c == '.';
+	private boolean isDot(char currentChar) {
+		return currentChar == '.';
 	}
 
-	private boolean isExclamation(char c) {
-		return c == '!';
+	private boolean isExclamation(char currentChar) {
+		return currentChar == '!';
 	}
 
-	private boolean isSpace(char c) {
-		return c == ' ' || c == '\n' || c == '\t' || c == '\r';
+	private boolean isSpace(char currentChar) {
+		return currentChar == ' ' || currentChar == '\n' || currentChar == '\t' || currentChar == '\r';
 	}
 
-	private boolean isEndOfLine(char c) {
-		return c == '\n' || c == '\r';
+	private boolean isEndOfLine(char currentChar) {
+		return currentChar == '\n' || currentChar == '\r';
 	}
 
-	private boolean isEquals(char c) {
-		return c == '=';
+	private boolean isEquals(char currentChar) {
+		return currentChar == '=';
 	}
 
-	private boolean isMathOperator(char c) {
-		return c == '+' || c == '-' || c == '*' || c == '/';
-	}
-
-	private boolean isDelimiter(char c) {
-		return c == ';';
-	}
-
-	private boolean isTwoPoints(char c) {
-		return c == ':';
+	private boolean isMathOperator(char currentChar) {
+		return currentChar == '+' || currentChar == '-' || currentChar == '*' || currentChar == '/';
 	}
 
 	private boolean isEOF() {
@@ -297,22 +281,20 @@ public class Scanner {
 		return false;
 	}
 
-	// private boolean isEspecialCharacter(String c) {
-	// 	return c.matches("[\\p{Punct}]");
-	// }
-
-	private Token getMathToken(String c) {
+	private Token getOperationToken(String currentString, char currentChar) {
 		this.back();
-		switch (c) {
+
+		switch (currentString) {
 			case "+":
-				return new Token(TokenType.SUM_OP, c, this.line, this.column);
+                return returnedTokenInEndOfLine(currentChar, TokenType.SUM_OP, currentString);
 			case "-":
-				return new Token(TokenType.SUB_OP, c, this.line, this.column);
+                return returnedTokenInEndOfLine(currentChar, TokenType.SUB_OP, currentString);
 			case "*":
-				return new Token(TokenType.MULT_OP, c, this.line, this.column);
+                return returnedTokenInEndOfLine(currentChar, TokenType.MULT_OP, currentString);
 			default: 
-				return new Token(TokenType.DIV_OP, c, this.line, this.column);	
+                return returnedTokenInEndOfLine(currentChar, TokenType.DIV_OP, currentString);
 		}
+
 	}
 
 	private boolean isLeftParenthesis(char c) {
@@ -321,10 +303,6 @@ public class Scanner {
 	
 	private boolean isRightParenthesis(char c) {
 		return c == ')';
-	}
-
-	private boolean isDoubleQuotes(char c) {
-		return c == '"';
 	}
 
 }

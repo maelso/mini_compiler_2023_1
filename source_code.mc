@@ -15,7 +15,7 @@ _123_VAR_NAME
 aBcDeFg123
 + - / *
 = 
-=== != < > <= >=
+== != < > <= >=
 ()
 # teste antes do int
 int
