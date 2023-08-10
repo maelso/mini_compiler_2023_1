@@ -10,13 +10,14 @@ import java.util.Map;
 import utils.TokenType;
 
 public class Scanner {
-    char[] source_code;
-    int state;
-    int pos;
-    int line;
-    int column;
 
-    private static final Map<String, TokenType> reservedWords;
+	int pos;
+	char[] source_code;
+	int state;
+	public int line;
+	public int column;
+
+	private static final Map<String, TokenType> reservedWords;
 
     static {
         reservedWords = new HashMap<>();
@@ -27,159 +28,307 @@ public class Scanner {
         reservedWords.put("else", TokenType.RESERVED_KEYWORD);
     }
 
-    public Scanner(String filename) {
-        try {
-            String contentBuffer = new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
-            this.source_code = contentBuffer.toCharArray();
-            this.pos = 0;
-            this.line = 1;
-            this.column = 1;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+	public Scanner(String filename) {
+		try {
+			String contentBuffer = new String(Files.readAllBytes(Paths.get(filename)), StandardCharsets.UTF_8);
+			this.source_code = contentBuffer.toCharArray();
+			this.pos = 0;
+			this.line = 1;
+			this.column = 1;
 
-    public Token nextToken() throws Exception {
-        char currentChar;
-        String content = "";
-        this.state = 0;
-        while (true) {
-            if (isEOF()) {
-                return null;
-            }
-            currentChar = nextChar();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 
-            if (currentChar == '#') {
-                while (!isEOF() && currentChar != '\n' && currentChar != '\r') {
-                    currentChar = nextChar();
-                }
-                continue;
-            }
+	public Token nextToken() {
+		this.state = 0;
+		String content = "";
+		char currentChar;
 
-            switch (state) {
-                case 0:
-                    if (isLetter(currentChar)) {
-                        content += currentChar;
-                        this.state = 1;
-                    } else if (isDigit(currentChar) || currentChar == '.') {
-                        content += currentChar;
-                        this.state = currentChar == '.' ? 4 : 2;
-                    } else if (isOperator(currentChar)) {
-                        return new Token(TokenType.MATH_OP, String.valueOf(currentChar), line, column);
-                    } else if (currentChar == '=' && peekChar() == '=') {
-                        nextChar(); // Consuming the next '='
-                        return new Token(TokenType.REL_OP, "==", line, column);
-                    } else if ((currentChar == '>' || currentChar == '<' || currentChar == '!') && peekChar() == '=') {
-                        char nextChar = nextChar(); // Consuming the next '='
-                        return new Token(TokenType.REL_OP, String.valueOf(currentChar) + nextChar, line, column);
-                    } else if (currentChar == '>' || currentChar == '<') {
-                        return new Token(TokenType.REL_OP, String.valueOf(currentChar), line, column);
-                    } else if (currentChar == '=') {
-                        return new Token(TokenType.ASSIGN, String.valueOf(currentChar), line, column);
-                    } else if (currentChar == '(' || currentChar == ')') {
-                        return new Token(TokenType.DELIM, String.valueOf(currentChar), line, column);
-                    } else if (isSpace(currentChar)) {
-                        this.state = 0;
-                    } else {
-                        throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
-                    }
-                    break;
-                case 1:
-                    if (isLetter(currentChar) || isDigit(currentChar)) {
-                        content += currentChar;
-                        this.state = 1;
-                    } else {
-                        back();
-                        TokenType type = reservedWords.getOrDefault(content, TokenType.IDENTIFIER);
-                        return new Token(type, content, line, column);
-                    }
-                    break;
-                case 2:
-                    if (isDigit(currentChar)) {
-                        content += currentChar;
-                        this.state = 2;
-                    } else if (currentChar == '.') {
-                        content += currentChar;
-                        this.state = 3;
-                    } else {
-                        back();
-                        return new Token(TokenType.NUMBER, content, line, column);
-                    }
-                    break;
+		while (true) {
+			if (isEOF()) {
+				return null;
+			}
 
-                case 3:
-                    if (isDigit(currentChar)) {
-                        content += currentChar;
-                        this.state = 5;
-                    } else {
-                        throw new Exception("Number Malformed: expected number after '.' received \'" + currentChar + "\' at line " + line + ", column " + column);
-                    }
-                    break;
+			
+			
+			currentChar = this.nextChar();
 
-                case 4:
-                    if (isDigit(currentChar)) {
-                        content += currentChar;
-                        this.state = 5;
-                    } else {
-                        throw new Exception("Number Malformed: expected number after '.' received \'" + currentChar + "\' at line " + line + ", column " + column);
-                    }
-                    break;
+			if (isEndOfLine(currentChar)) {
+				this.line++;
+				this.column = 1;
+			}
 
-                case 5:
-                    if (isDigit(currentChar)) {
-                        content += currentChar;
-                        this.state = 5;
-                    } else {
-                        back();
-                        return new Token(TokenType.NUMBER, content, line, column);
-                    }
-                    break;
+			if (currentChar == '#') {
+				while (!this.isEndOfLine(currentChar)) {
+					currentChar = this.nextChar();
+				}
 
-                default:
-                    break;
-            }
-        }
-    }
+				this.line++;
+				this.column = 1;
+				state = 0;
+			}
 
-    private boolean isSpace(char currentChar) {
-        return currentChar == ' ' || currentChar == '\n' || currentChar == '\t' || currentChar == '\r';
-    }
+			switch (state) {
+				case 0:
+					if (this.isLetter(currentChar) || this.isUnderscore(currentChar)) {
+						content += currentChar;
+						state = 1;
+					} else if (isSpace(currentChar)) {
+						state = 0;
+					} else if (isDigit(currentChar)) {
+						content += currentChar;
+						state = 2;
+					} else if (isMathOperator(currentChar)) {
+						content += currentChar;
+						state = 3;
+					} else if (isEquals(currentChar)) {
+						content += currentChar;
+						state = 4;
+					} else if (isLess(currentChar)) {
+						content += currentChar;
+						state = 5;
+					} else if (isGreater(currentChar)) {
+						content += currentChar;
+						state = 6;
+					} else if (isExclamation(currentChar)) {
+						content += currentChar;
+						state = 7;
+					} else if(isLeftParenthesis(currentChar)) {
+						content += currentChar;
+           				return new Token(TokenType.LEFT_PARENTHESIS, content, this.line, this.column);
+					} else if(isRightParenthesis(currentChar)) {
+						content += currentChar;
+            			return new Token(TokenType.RIGHT_PARENTHESIS, content, this.line, this.column);
+					} else if (isDot(currentChar)) {
+						content += currentChar;
+						state = 8;
+					} else if (isDoubleQuotes(currentChar)) {
+						content += currentChar;
+						state = 10;
+					} else if (isDelimiter(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.DELIMITER, content, this.line, this.column);
+						
+					} else if (isTwoPoints(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.TWO_POINTS, content, this.line, this.column);
+					} else {
+						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+					}
+					break;
+				case 1:
+					if (this.isLetter(currentChar) || this.isDigit(currentChar) || this.isUnderscore(currentChar)) {
+						content += currentChar;
+						state = 1;
+					} else {
+						if (!isEndOfLine(currentChar)) this.back();
+						if (isSpace(currentChar) || isDelimiter(currentChar) || isMathOperator(currentChar) || isTwoPoints(currentChar)) {
+							for (Keyword k : Keyword.values()) {
+								if (content.intern() == k.toString().intern()) {
+									return new Token(TokenType.RESERVED_KEYWORD, k.toString(), this.line, this.column);
+								}
+							}
+							return new Token(TokenType.IDENTYFIER, content, this.line, this.column);
+						}
 
-    private void back() {
-        this.pos--;
-    }
+						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+					}
+					break;
+				case 2:
+					if(isDigit(currentChar)) {
+						content += currentChar;
+						state = 2;
+					} else if(currentChar == '.') {
+						content += currentChar;
+						state = 8;
+					} else	if (isSpace(currentChar) || isEndOfLine(currentChar) || isRightParenthesis(currentChar)) {
+						return new Token(TokenType.NUMBER, content, this.line, this.column);
+					} else if (isDelimiter(currentChar) || isMathOperator(currentChar) || isTwoPoints(currentChar)) {
+						this.back();
+						return new Token(TokenType.NUMBER, content, this.line, this.column);
+					} else {
+						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+					}
+					break;
+					
+				case 3: 
+					return getMathToken(content);
+				case 4: 
+					if (isEquals(currentChar) && isEquals(this.source_code[this.pos])) {
+						this.nextChar();
+						throw new RuntimeException("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
 
-    private char peekChar() {
-        if (isEOF()) {
-            return '\0';
-        }
-        return this.source_code[pos];
-    }
+					} else if(isEquals(currentChar) && !isEquals(this.source_code[this.pos])) {
+						content += currentChar;
+						return new Token(TokenType.EQUALS_OP, content, this.line, this.column);
+					} else {
+						if (!isEndOfLine(currentChar)) this.back();
+						return new Token(TokenType.ASSIGN_OP, content, this.line, this.column);
+					}
 
-    private char nextChar() {
-        char currentChar = this.source_code[pos++];
-        if (currentChar == '\n') {
-            line++;
-            column = 1;
-        } else {
-            column++;
-        }
+				case 5:
+					if (isEquals(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.LESS_EQUALS_OP, content, this.line, this.column);
+					} else {
+						if (!isEndOfLine(currentChar)) this.back();
+						return new Token(TokenType.LESS_OP, content, this.line, this.column);
+					}
+				
+				case 6:
+					if (isEquals(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.GREATER_EQUALS_OP, content, this.line, this.column);
+					} else {
+						if (!isEndOfLine(currentChar)) this.back();
+						return new Token(TokenType.GREATER_OP, content, this.line, this.column);
+					}
+
+				case 7:
+					if (isEquals(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.DIF_OP, content, this.line, this.column);
+					} else {
+						if (!isEndOfLine(currentChar)) this.back();
+						throw new RuntimeException("Operator ! don't is supported [line:" + line  + " ] [column:"+ column + "]");
+					}
+				case 8:
+					if (isDigit(currentChar)) {
+						content += currentChar;
+						state = 9;
+					} else {
+						this.back();
+						throw new RuntimeException("Error: Invalid Character for Number [line:" + line  + " ] [column:"+ column + "]");
+					}
+					break;
+
+				case 9: 
+					if (isDigit(currentChar)) {
+						content += currentChar;
+						state = 9;
+					} else if (isSpace(currentChar) || isEndOfLine(currentChar)) {
+						return new Token(TokenType.NUMBER, content, this.line, this.column);
+					} else {
+						throw new RuntimeException("Unrecognized symbol for number \'" + currentChar + "\' at line " + line + ", column " + column);
+					}
+					break;
+
+				case 10: 
+					if (isDoubleQuotes(currentChar)) {
+						content += currentChar;
+						return new Token(TokenType.STRING, content, this.line, this.column);
+					}
+					content += currentChar;
+					state = 10;
+					break;
+			}
+
+			
+		}
+	}
+
+	private char nextChar() {
+		char currentChar = this.source_code[pos++];
+    	column++;
+
         return currentChar;
-    }
+		
+	}
 
-    private boolean isEOF() {
-        return this.pos >= this.source_code.length;
-    }
+	private void back() {
+		this.column--;
+		this.pos--;
+	}
 
-    private boolean isDigit(char currentChar) {
-        return currentChar >= '0' && currentChar <= '9';
-    }
+	private boolean isLetter(char c) {
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+	}
 
-    private boolean isOperator(char currentChar) {
-        return currentChar == '+' || currentChar == '-' || currentChar == '*' || currentChar == '/';
-    }
+	private boolean isDigit(char c) {
+		return c >= '0' && c <= '9';
+	}
 
-    private boolean isLetter(char currentChar) {
-        return (currentChar >= 'a' && currentChar <= 'z') || (currentChar >= 'A' && currentChar <= 'Z') || currentChar == '_';
-    }
+	private boolean isUnderscore(char c) {
+		return c == '_';
+	}
+
+	private boolean isLess(char c) {
+		return c == '<';
+	}
+
+	private boolean isGreater(char c) {
+		return c == '>';
+	}
+
+	private boolean isDot(char c) {
+		return c == '.';
+	}
+
+	private boolean isExclamation(char c) {
+		return c == '!';
+	}
+
+	private boolean isSpace(char c) {
+		return c == ' ' || c == '\n' || c == '\t' || c == '\r';
+	}
+
+	private boolean isEndOfLine(char c) {
+		return c == '\n' || c == '\r';
+	}
+
+	private boolean isEquals(char c) {
+		return c == '=';
+	}
+
+	private boolean isMathOperator(char c) {
+		return c == '+' || c == '-' || c == '*' || c == '/';
+	}
+
+	private boolean isDelimiter(char c) {
+		return c == ';';
+	}
+
+	private boolean isTwoPoints(char c) {
+		return c == ':';
+	}
+
+	private boolean isEOF() {
+		if (this.pos >= this.source_code.length) {
+			return true;
+		}
+		return false;
+	}
+
+	// private boolean isEspecialCharacter(String c) {
+	// 	return c.matches("[\\p{Punct}]");
+	// }
+
+	private Token getMathToken(String c) {
+		this.back();
+		switch (c) {
+			case "+":
+				return new Token(TokenType.SUM_OP, c, this.line, this.column);
+			case "-":
+				return new Token(TokenType.SUB_OP, c, this.line, this.column);
+			case "*":
+				return new Token(TokenType.MULT_OP, c, this.line, this.column);
+			default: 
+				return new Token(TokenType.DIV_OP, c, this.line, this.column);	
+		}
+	}
+
+	private boolean isLeftParenthesis(char c) {
+		return c == '(';
+	}
+	
+	private boolean isRightParenthesis(char c) {
+		return c == ')';
+	}
+
+	private boolean isDoubleQuotes(char c) {
+		return c == '"';
+	}
+
 }
