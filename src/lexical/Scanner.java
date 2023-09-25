@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import exceptions.ScannerException;
 import utils.TokenType;
 
 public class Scanner {
@@ -40,8 +41,9 @@ public class Scanner {
 				} else if (isDigit(currentChar)) {
 					content += currentChar;
 					this.state = 2;
-				}
-				else if(isSpace(currentChar)) {
+				} else if(isMathOperator(currentChar)) {
+					return new Token(TokenType.MATH_OP, content);
+				} else if(isSpace(currentChar)) {
 					this.state = 0;
 				} else {
 					throw new Exception("Unrecognized symbol \'" + currentChar + "\'");
@@ -61,7 +63,7 @@ public class Scanner {
 					content += currentChar;
 					this.state = 2;
 				} else if(isLetter(currentChar)) {
-					throw new Exception("Number Malformed: expected number received \'"+currentChar+"\'");
+					throw new ScannerException("Number Malformed: expected number received \'"+currentChar+"\'");
 				} else {
 					back();
 					return new Token(TokenType.NUMBER, content);
@@ -77,6 +79,10 @@ public class Scanner {
 		if(currentChar == ' ' || currentChar == '\n' || currentChar == '\t' || currentChar == '\r')
 			return true;
 		return false;
+	}
+	
+	private boolean isMathOperator(char currentChar) {
+		return !(currentChar != '+' && currentChar != '-' && currentChar != '*' && currentChar != '/');
 	}
 
 	private void back() {

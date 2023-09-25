@@ -11,22 +11,22 @@ LER numero2
 LER numero3
 SE numero1 > numero2 ENTAO
    INICIO
-      ATRIBUIR 2+3-4+5-6*5-1 A aux
-      ATRIBUIR numero1 A numero2
-      ATRIBUIR aux A numero1
+      aux = 2+3-4+5-6*5-1
+      numero2 = numero1
+      numero1 = aux
    FIM 
-SE numero1 > numero3 E numero2 <= numero4 E numero1 > 3 OU numero2 <> numero4 ENTAO
+SE numero1 > numero3 E numero2 <= numero4 E numero1 > 3 OU numero2 != numero4 ENTAO
    INICIO
-      ATRIBUIR (numero3) A aux
-      ATRIBUIR numero1 A numero3
-      ATRIBUIR aux A numero1
+      aux = (numero3)
+      numero3 = numero1
+      numero1 = aux
    FIM
 SE numero2 > numero3 ENTAO
    INICIO
-      ATRIBUIR numero3 A aux
-      ATRIBUIR numero2 A numero3
-      ATRIBUIR aux A numero2
+      aux = numero3
+      numero3 = numero2
+      numero2 = aux
    FIM
-IMPRIMIR numero1
-IMPRIMIR numero2
-IMPRIMIR numero3
+IMPRIMIR(numero1)
+IMPRIMIR(numero2)
+IMPRIMIR(numero3)
