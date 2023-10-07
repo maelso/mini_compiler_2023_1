@@ -65,20 +65,44 @@ public class Scanner {
                         content += currentChar;
                         this.state = currentChar == '.' ? 4 : 2;
                     } else if (isOperator(currentChar)) {
-                        return new Token(TokenType.MATH_OP, String.valueOf(currentChar), line, column);
-                    } else if (currentChar == '=' && peekChar() == '=') {
-                        nextChar(); // Consuming the next '='
-                        return new Token(TokenType.REL_OP, "==", line, column);
-                    } else if ((currentChar == '>' || currentChar == '<' || currentChar == '!') && peekChar() == '=') {
-                        char nextChar = nextChar(); // Consuming the next '='
-                        return new Token(TokenType.REL_OP, String.valueOf(currentChar) + nextChar, line, column);
-                    } else if (currentChar == '>' || currentChar == '<') {
-                        return new Token(TokenType.REL_OP, String.valueOf(currentChar), line, column);
+						TokenType operator = getOperator(currentChar);
+                        return new Token(operator, String.valueOf(currentChar), line, column);
                     } else if (currentChar == '=') {
-                        return new Token(TokenType.ASSIGN, String.valueOf(currentChar), line, column);
-                    } else if (currentChar == '(' || currentChar == ')') {
-                        return new Token(TokenType.DELIM, String.valueOf(currentChar), line, column);
-                    } else if (isSpace(currentChar)) {
+						if (peekChar() == '=') {
+							char nextChar = nextChar(); // Consuming the next '='
+							if (peekChar() == '=') {
+								nextChar();
+								throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
+							}
+							
+							return new Token(TokenType.EQUALS,  String.valueOf(currentChar) + nextChar, line, column);
+
+						} else {
+							return new Token(TokenType.ASSIGN, String.valueOf(currentChar), line, column);
+						}
+						
+                    } else if (currentChar == '>') {
+						if (peekChar() == '=') {
+							char nextChar = nextChar(); // Consuming the next '='
+							return new Token(TokenType.GREATER_EQUALS, String.valueOf(currentChar) + nextChar, line, column);
+						} else {
+							return new Token(TokenType.GREATER, String.valueOf(currentChar), line, column);
+						}
+					} else if(currentChar == '<') {
+						if (peekChar() == '=') {
+							char nextChar = nextChar(); // Consuming the next '='
+							return new Token(TokenType.LESS_EQUALS, String.valueOf(currentChar) + nextChar, line, column);
+						} else {
+							return new Token(TokenType.LESS, String.valueOf(currentChar), line, column);
+						}
+					} else if (currentChar == '!' && peekChar() == '=') {
+						char nextChar = nextChar(); // Consuming the next '='
+						return new Token(TokenType.DIF_OP, String.valueOf(currentChar) + nextChar, line, column);
+					} else if (currentChar == '(') {
+                        return new Token(TokenType.LEFT_PARENTHESIS, String.valueOf(currentChar), line, column);
+                    } else if(currentChar == ')') {
+						return new Token(TokenType.RIGHT_PARENTHESIS, String.valueOf(currentChar), line, column);
+					} else if (isSpace(currentChar)) {
                         this.state = 0;
                     } else {
                         throw new Exception("Unrecognized symbol \'" + currentChar + "\' at line " + line + ", column " + column);
@@ -134,7 +158,6 @@ public class Scanner {
                         return new Token(TokenType.NUMBER, content, line, column);
                     }
                     break;
-
                 default:
                     break;
             }
@@ -178,6 +201,18 @@ public class Scanner {
     private boolean isOperator(char currentChar) {
         return currentChar == '+' || currentChar == '-' || currentChar == '*' || currentChar == '/';
     }
+
+	private TokenType getOperator(char currentChar) {
+		if (currentChar == '+') {
+			return TokenType.SUM_OP;
+		} else if(currentChar == '-') {
+			return TokenType.SUB_OP;
+		} else if(currentChar == '*') {
+			return TokenType.MULT_OP;
+		} else  {
+			return TokenType.DIV_OP;
+		}
+	}
 
     private boolean isLetter(char currentChar) {
         return (currentChar >= 'a' && currentChar <= 'z') || (currentChar >= 'A' && currentChar <= 'Z') || currentChar == '_';
