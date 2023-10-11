@@ -5,7 +5,6 @@ numero3:INTEIRO
 aux:INTEIRO
 
 :ALGORITMO
-# Coloca 3 números em ordem crescente
 LER numero1
 LER numero2
 LER numero3
